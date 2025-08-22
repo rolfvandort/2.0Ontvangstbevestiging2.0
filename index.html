@@ -72,7 +72,7 @@
 
         <!-- PAGINA 2: NIEUW FORMULIER (standaard verborgen) -->
         <div id="new-form-page" class="hidden">
-            <div class="flex flex-col min-h-screen">
+             <div class="flex flex-col min-h-screen">
                 <header class="bg-white shadow-md w-full p-4 flex justify-between items-center z-10">
                     <div><h1 class="text-2xl font-bold text-primary">Nieuwe Verantwoording Starten</h1><p class="text-sm text-gray-500">Vul de basisgegevens in en wijs deeltaken toe.</p></div>
                     <a href="#" class="btn-back-to-dashboard text-sm font-medium text-gray-600 hover:text-primary">&larr; Terug naar Dashboard</a>
@@ -134,7 +134,7 @@
                         <section class="p-6 border-b">
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700">Bewijsstuk(ken) uploaden</label>
+                                    <label for="document-upload" class="block text-sm font-medium text-gray-700">Bewijsstuk(ken) uploaden</label>
                                     <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                                         <div class="space-y-1 text-center">
                                             <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -236,6 +236,7 @@
                             <option>Zelfwerkzaamheid</option>
                             <option>Studie</option>
                             <option>Overige kosten</option>
+                            <option>Algemene Verantwoording</option>
                         </select>
                     </div>
                     <div>
@@ -537,14 +538,13 @@
         }
 
         function saveNewForm(confirmedDate, singleAssignee = null) {
-            const deeltaken = deeltakenBuffer.length > 0 ? deeltakenBuffer : [{ id: `taak_${Date.now()}`, collega: singleAssignee, taakblok: 'Volledige Verantwoording', bedrag: parseFloat(document.getElementById('totaalbedrag').value) || 0, status: 'open', uploads: [], comments: [] }];
             const form = {
                 id: `form_${Date.now()}`,
                 totaalbedrag: parseFloat(document.getElementById('totaalbedrag').value) || 0,
                 transactiedatum: confirmedDate,
                 omschrijving: document.getElementById('omschrijving').value,
                 aangemaaktDoor: currentUserDisplayName,
-                deeltaken: deeltaken,
+                deeltaken: deeltakenBuffer,
                 history: []
             };
 
@@ -554,6 +554,15 @@
             }
             
             lastUsedDate = confirmedDate;
+            
+            if (deeltakenBuffer.length === 0) {
+                if (singleAssignee) {
+                    form.deeltaken.push({ id: `taak_${Date.now()}`, collega: singleAssignee, taakblok: 'Volledige Verantwoording', bedrag: form.totaalbedrag, status: 'open', uploads: [], comments: [] });
+                } else {
+                    openModal(modals.singleAssign);
+                    return;
+                }
+            }
             
             const deeltakenTotaal = form.deeltaken.reduce((sum, taak) => sum + taak.bedrag, 0);
             if (deeltakenTotaal !== form.totaalbedrag) {
@@ -715,8 +724,8 @@
         };
 
         function showPage(pageToShow) {
-            Object.values(pages).forEach(p => p.classList.add('hidden'));
-            pageToShow.classList.remove('hidden');
+            Object.values(pages).forEach(p => { if(p) p.classList.add('hidden') });
+            if(pageToShow) pageToShow.classList.remove('hidden');
             if (pageToShow === pages.dashboard) renderDashboard();
             if (pageToShow === pages.report) renderReportPage();
         }
@@ -726,12 +735,15 @@
             showPage(pageToShow);
         }
 
-        const openModal = (modal) => modal.classList.remove('hidden');
+        const openModal = (modal) => { if(modal) modal.classList.remove('hidden'); }
         const closeModal = (modal) => {
             if (modal === modals.addTask) {
-                document.querySelectorAll('#modal-taakblok-container input[type="checkbox"]').forEach(cb => cb.checked = false);
+                const taakblokContainer = document.getElementById('modal-taakblok-container');
+                if(taakblokContainer) {
+                    taakblokContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                }
             }
-            modal.classList.add('hidden');
+            if(modal) modal.classList.add('hidden');
         }
 
         // --- EVENT LISTENERS ---
@@ -774,7 +786,8 @@
                 if (target.id === 'btn-open-modal') {
                      const totaal = parseFloat(document.getElementById('totaalbedrag').value) || 0;
                      const deeltakenTotaal = deeltakenBuffer.reduce((sum, taak) => sum + taak.bedrag, 0);
-                     document.getElementById('modal-deelbedrag').value = (totaal - deeltakenTotaal).toFixed(2);
+                     const deelbedragInput = document.getElementById('modal-deelbedrag');
+                     if(deelbedragInput) deelbedragInput.value = (totaal - deeltakenTotaal).toFixed(2);
                      openModal(modals.addTask);
                 }
                 if (target.id === 'btn-close-modal') closeModal(modals.addTask);
@@ -807,7 +820,7 @@
                 
                 if (target.id === 'btn-add-comment') {
                     const input = document.getElementById('new-comment-input');
-                    if (input.value.trim() && activeTask) {
+                    if (input && input.value.trim() && activeTask) {
                         const { form } = findTask(activeTask.formId, activeTask.taakId);
                         const message = `<span class="font-semibold">${currentUserDisplayName}:</span> ${input.value.trim()}`;
                         logEvent(form.id, activeTask.taakId, message, 'comment');
