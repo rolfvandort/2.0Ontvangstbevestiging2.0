@@ -138,6 +138,7 @@
                                     <select id="task-type-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
                                         <!-- Opties worden dynamisch geladen -->
                                     </select>
+                                    <input type="text" id="task-type-other-input" class="hidden mt-2 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" placeholder="Specificeer ander type...">
                                 </div>
                                 <div>
                                     <label for="document-upload" class="block text-sm font-medium text-gray-700">Bewijsstuk(ken) uploaden</label>
@@ -495,6 +496,27 @@
             const footer = document.getElementById('task-view-footer');
             const permissionBanner = document.getElementById('permission-denied-banner');
             permissionBanner.classList.add('hidden');
+            
+            const taskTypeSelect = document.getElementById('task-type-select');
+            const taskTypeOtherInput = document.getElementById('task-type-other-input');
+            taskTypeSelect.innerHTML = ''; // Clear old options
+            ALL_TASK_TYPES.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                taskTypeSelect.appendChild(option);
+            });
+            taskTypeSelect.innerHTML += '<option value="anders">Anders...</option>';
+
+            const isCustomType = !ALL_TASK_TYPES.includes(taak.taakblok);
+            if (isCustomType) {
+                taskTypeSelect.value = 'anders';
+                taskTypeOtherInput.value = taak.taakblok;
+                taskTypeOtherInput.classList.remove('hidden');
+            } else {
+                taskTypeSelect.value = taak.taakblok;
+                taskTypeOtherInput.classList.add('hidden');
+            }
 
             if (taak.status === 'completed') {
                 interactionSection.classList.add('hidden');
@@ -857,13 +879,38 @@
                 taskTypeSelect.addEventListener('change', (e) => {
                     if (!activeTask) return;
                     const { form, taak } = findTask(activeTask.formId, activeTask.taakId);
+                    const otherInput = document.getElementById('task-type-other-input');
+                    if (taak && otherInput) {
+                        const newType = e.target.value;
+                        if (newType === 'anders') {
+                            otherInput.classList.remove('hidden');
+                            otherInput.focus();
+                        } else {
+                            otherInput.classList.add('hidden');
+                            const oldType = taak.taakblok;
+                            taak.taakblok = newType;
+                            logEvent(form.id, taak.id, `<span class="font-semibold">${currentUserDisplayName}</span> heeft het type gewijzigd van '${oldType}' naar '${newType}'.`);
+                            populateTaskView(form, taak); // Refresh view
+                            showNotification('Type succesvol gewijzigd!', 'info');
+                        }
+                    }
+                });
+            }
+
+            const taskTypeOtherInput = document.getElementById('task-type-other-input');
+            if(taskTypeOtherInput) {
+                taskTypeOtherInput.addEventListener('change', (e) => {
+                     if (!activeTask) return;
+                    const { form, taak } = findTask(activeTask.formId, activeTask.taakId);
                     if (taak) {
                         const oldType = taak.taakblok;
-                        const newType = e.target.value;
-                        taak.taakblok = newType;
-                        logEvent(form.id, taak.id, `<span class="font-semibold">${currentUserDisplayName}</span> heeft het type gewijzigd van '${oldType}' naar '${newType}'.`);
-                        populateTaskView(form, taak); // Refresh view
-                        showNotification('Type succesvol gewijzigd!', 'info');
+                        const newType = e.target.value.trim();
+                        if(newType) {
+                            taak.taakblok = newType;
+                            logEvent(form.id, taak.id, `<span class="font-semibold">${currentUserDisplayName}</span> heeft het type gewijzigd van '${oldType}' naar '${newType}'.`);
+                            populateTaskView(form, taak); // Refresh view
+                            showNotification('Type succesvol gewijzigd!', 'info');
+                        }
                     }
                 });
             }
