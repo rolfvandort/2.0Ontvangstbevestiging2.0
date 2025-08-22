@@ -131,26 +131,8 @@
                         <section id="task-view-header" class="p-6 bg-accent text-white">
                             <!-- Inhoud wordt dynamisch geladen -->
                         </section>
-                        <section class="p-6 border-b">
-                            <div class="space-y-4">
-                                <div>
-                                    <label for="document-upload" class="block text-sm font-medium text-gray-700">Bewijsstuk(ken) uploaden</label>
-                                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                                        <div class="space-y-1 text-center">
-                                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                                            <div class="flex text-sm text-gray-600">
-                                                <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-accent">
-                                                    <span>Upload een bestand</span>
-                                                    <input id="file-upload" name="file-upload" type="file" class="sr-only" multiple>
-                                                </label>
-                                                <p class="pl-1">of sleep het hierheen</p>
-                                            </div>
-                                            <p class="text-xs text-gray-500">PDF, PNG, JPG, DOCX tot 10MB</p>
-                                        </div>
-                                    </div>
-                                    <div id="file-list" class="mt-2 text-sm text-gray-600"></div>
-                                </div>
-                            </div>
+                        <section id="task-interaction-section" class="p-6 border-b">
+                            <!-- Inhoud wordt dynamisch geladen -->
                         </section>
                         <section class="p-6 border-b bg-gray-50">
                             <h2 class="text-xl font-semibold mb-4 text-gray-600">Hoofdgegevens (informatief)</h2>
@@ -240,7 +222,7 @@
                         </select>
                     </div>
                     <div>
-                        <label for="modal-deelbedrag" class="block text-sm font-medium text-gray-700">Te verantwoorden bedrag</label>
+                        <label for="modal-deelbedrag" class="block text-sm font-medium text-gray-700">Te verantwoorden bedrag (optioneel)</label>
                         <div class="mt-1 relative"><div class="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center"><span class="text-gray-500 sm:text-sm">€</span></div><input type="number" id="modal-deelbedrag" class="block w-full rounded-md border-gray-300 pl-7 sm:text-sm"></div>
                     </div>
                 </main>
@@ -324,6 +306,7 @@
             editRequests: [],
             activityLog: []
         };
+        const ALL_TASK_TYPES = ["Voorschot smartengeld", "Zaakbeschadiging/zaakschade", "Medische kosten", "Reiskosten", "Huishoudelijke hulp", "Verlies aan verdienvermogen", "Daggeldvergoeding/verzorging", "Porto- en telefoonkosten", "Zelfwerkzaamheid", "Studie", "Overige kosten", "Algemene Verantwoording"];
 
         // --- INITIALISATIE ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -427,7 +410,7 @@
                         <h3 class="font-bold ${titleColor}">${identifier}</h3>
                         ${statusIndicator}
                     </div>
-                    <p class="text-sm font-semibold mt-2">Taak: ${taak.taakblok} (€ ${taak.bedrag.toFixed(2)})</p>
+                    <p class="text-sm font-semibold mt-2">Taak: ${taak.taakblok} (€ ${taak.bedrag.toFixed(2) || 'n.v.t.'})</p>
                     ${!isMine ? `<p class="text-sm mt-1">Wacht op: <span class="font-semibold">${taak.collega}</span></p>` : ''}
                 </div>`;
         }
@@ -483,16 +466,20 @@
 
             const mainData = document.getElementById('task-view-main-data');
             mainData.innerHTML = `<div><label class="block text-sm font-medium text-gray-700">Totaalbedrag formulier</label><input type="text" value="€ ${form.totaalbedrag.toFixed(2)}" class="mt-1 block w-full rounded-md readonly-input" readonly></div><div><label class="block text-sm font-medium text-gray-700">Datum van transactie</label><input type="text" value="${form.transactiedatum}" class="mt-1 block w-full rounded-md readonly-input" readonly></div>`;
-
+            
+            const interactionSection = document.getElementById('task-interaction-section');
             const footer = document.getElementById('task-view-footer');
             const permissionBanner = document.getElementById('permission-denied-banner');
             permissionBanner.classList.add('hidden');
 
             if (taak.status === 'completed') {
+                interactionSection.classList.add('hidden');
                 footer.innerHTML = `<button id="btn-request-edit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-5 rounded-lg shadow-sm">Wijziging Aanvragen</button>`;
             } else if (taak.collega === currentUserDisplayName) {
+                interactionSection.classList.remove('hidden');
                 footer.innerHTML = `<button id="btn-delegate-task" class="text-sm font-medium text-gray-600 hover:text-gray-900">Taak Overdragen</button><button id="btn-return-task" class="text-sm font-medium text-red-600 hover:text-red-900">Taak Terugsturen</button><button id="btn-complete-task" class="bg-primary hover:bg-primary-dark text-white font-bold py-2 px-5 rounded-lg shadow-sm">Taak Afronden</button>`;
             } else {
+                interactionSection.classList.add('hidden');
                 footer.innerHTML = `<button id="btn-take-over-task" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded-lg shadow-sm">Taak Overnemen</button>`;
                 permissionBanner.textContent = `Deze taak is toegewezen aan ${taak.collega}.`;
                 permissionBanner.classList.remove('hidden');
@@ -523,11 +510,11 @@
         // --- LOGICA FUNCTIES ---
         function addDeeltaak() {
             const collega = document.getElementById('modal-collega').value;
-            const bedrag = document.getElementById('modal-deelbedrag').value;
+            const bedrag = document.getElementById('modal-deelbedrag').value || 0; // Bedrag is optioneel
             const taakblok = document.getElementById('modal-taakblok').value;
 
-            if (!collega || !taakblok || !bedrag) {
-                showNotification('Selecteer een collega, type en vul een bedrag in.', 'error');
+            if (!collega || !taakblok) {
+                showNotification('Selecteer een collega en een type.', 'error');
                 return;
             }
 
@@ -564,12 +551,6 @@
                 }
             }
             
-            const deeltakenTotaal = form.deeltaken.reduce((sum, taak) => sum + taak.bedrag, 0);
-            if (deeltakenTotaal !== form.totaalbedrag) {
-                showNotification(`Deeltaken-totaal (€${deeltakenTotaal.toFixed(2)}) komt niet overeen.`, 'error');
-                return;
-            }
-
             localDatabase.forms.push(form);
             logEvent(form.id, null, `<span class="font-semibold">${currentUserDisplayName}</span> heeft een nieuw formulier aangemaakt.`);
             showNotification('Formulier succesvol aangemaakt!', 'success');
@@ -677,11 +658,7 @@
             const deeltakenTotaal = deeltakenBuffer.reduce((sum, taak) => sum + taak.bedrag, 0);
             const verschil = totaal - deeltakenTotaal;
 
-            if (verschil === 0 && totaal > 0) {
-                display.innerHTML = `<span class="font-semibold text-green-600">Bedragen komen overeen!</span>`;
-            } else {
-                display.innerHTML = `<span>Totaal deeltaken: <span class="font-bold">€ ${deeltakenTotaal.toFixed(2)}</span></span><br><span>Resterend: <span class="font-bold text-red-600">€ ${verschil.toFixed(2)}</span></span>`;
-            }
+            display.innerHTML = `<span>Totaal deeltaken: <span class="font-bold">€ ${deeltakenTotaal.toFixed(2)}</span></span><br><span>Verschil: <span class="font-bold ${verschil !== 0 ? 'text-red-600' : 'text-green-600'}">€ ${verschil.toFixed(2)}</span></span>`;
         }
         
         function logEvent(formId, taakId, message, type = 'generic') {
@@ -738,10 +715,7 @@
         const openModal = (modal) => { if(modal) modal.classList.remove('hidden'); }
         const closeModal = (modal) => {
             if (modal === modals.addTask) {
-                const taakblokContainer = document.getElementById('modal-taakblok-container');
-                if(taakblokContainer) {
-                    taakblokContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-                }
+                document.querySelectorAll('#modal-taakblok-container input[type="checkbox"]').forEach(cb => cb.checked = false);
             }
             if(modal) modal.classList.add('hidden');
         }
