@@ -157,13 +157,13 @@ const questions = [
   },
   {
     label: "Relevante wetsartikelen",
-    help: "Indien bekend, vul hier relevante wetsartikelen in. Anders leeg laten.",
+    help: "Indien bekend, vul hier relevante wetsartikelen in.",
     required: false,
     type: "text"
   },
   {
     label: "Datum bereik",
-    help: "Van: yyyy-mm-dd, tot: yyyy-mm-dd, of 'geen limiet'.",
+    help: "'Geen limiet' OF Van: yyyy-mm-dd, tot: yyyy-mm-dd.",
     required: false,
     type: "text"
   },
@@ -181,12 +181,12 @@ const questions = [
   },
   {
     label: "Doel output",
-    help: "Voor welk juridisch document wordt de input gebruikt? Bijvoorbeeld: pleitnota, conclusie, adviesnota, quickcheck.",
+    help: "Voor welk juridisch document wordt de output gebruikt? Bijvoorbeeld: pleitnota, conclusie, adviesnota, quickcheck.",
     required: false,
     type: "text"
   },
   {
-    label: "Minimaal aantal resultaten",
+    label: "Aantal weergeven resultaten(Top 3/Top 5/Top 10)",
     help: "Standaard 5.",
     required: false,
     type: "text"
@@ -199,7 +199,7 @@ const questions = [
   },
   {
     label: "Waiver for missing info?",
-    help: "Gaat u akkoord dat niet alle info compleet hoeft te zijn? Indien ja: 'ga door' vermelden.",
+    help: "Hier alleen iets anders dan nee invullen wanneer je niet specifiek wil zoeken op basis van alle ingevoerde informatie. Indien ja: 'ga door' vermelden.",
     required: false,
     type: "text"
   }
