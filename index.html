@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Prompt-maker voor Zoek-Agent</title>
   <style>
     :root {
@@ -123,214 +123,287 @@
     @media (max-width: 700px) {
       .container { max-width: 98vw; margin: 10vw 1vw;}
     }
+
+    /* Modaal overlay styling */
+    #modal {
+      display: none;
+      position: fixed;
+      top:0; left:0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #modal > div {
+      background: white;
+      padding: 20px 32px;
+      border-radius: 8px;
+      max-width: 360px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    #modal p {
+      margin: 0 0 20px 0;
+      font-size: 16px;
+      color: var(--text);
+    }
+    #modal button {
+      margin: 5px 10px 0 10px;
+      padding: 8px 18px;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    #goToSiteBtn {
+      background: var(--primary);
+      color: white;
+    }
+    #goToSiteBtn:hover {
+      background: #003d7a;
+    }
+    #closeModalBtn {
+      background: #ccc;
+      color: #222;
+    }
+    #closeModalBtn:hover {
+      background: #999;
+      color: white;
+    }
   </style>
 </head>
 <body>
-<div class="container">
-  <h2>Prompt-maker voor Zoek-Agent</h2>
-  <form id="qform" autocomplete="off">
-    <!-- Questions will be injected here -->
-  </form>
-  <div id="overview" class="overview-wrapper" style="display:none;">
-    <h3>Overzicht van antwoorden</h3>
-    <ul class="overview"></ul>
-    <div class="overview-actions">
-      <button type="button" id="copyBtn">Kopieer alles</button>
-      <button type="button" id="csvBtn">Exporteer als CSV</button>
+  <div class="container">
+    <h2>Prompt-maker voor Zoek-Agent</h2>
+    <form id="qform" autocomplete="off">
+      <!-- Questions will be injected here -->
+    </form>
+    <div id="overview" class="overview-wrapper" style="display:none;">
+      <h3>Overzicht van antwoorden</h3>
+      <ul class="overview"></ul>
+      <div class="overview-actions">
+        <button type="button" id="copyBtn">Kopieer alles</button>
+        <button type="button" id="csvBtn">Exporteer als CSV</button>
+      </div>
+      <small>Antwoorden direct aanpasbaar hierboven.</small>
     </div>
-    <small>Antwoorden direct aanpasbaar hierboven.</small>
   </div>
-</div>
+
+  <!-- Modaal pop-up -->
+  <div id="modal">
+    <div>
+      <p>Ga nu naar deze website en plak in de chat.</p>
+      <button id="goToSiteBtn">Ga naar website</button>
+      <br/>
+      <button id="closeModalBtn">Sluit</button>
+    </div>
+  </div>
+
 <script>
-const questions = [
-  {
-    label: "Rechtsgebied",
-    help: "Bijvoorbeeld: civielrecht — aansprakelijkheid, arbeidsrecht, bestuursrecht, strafrecht.",
-    required: true,
-    type: "text"
-  },
-  {
-    label: "Rechtsvraag",
-    help: "Wat is de concrete juridische vraag of het doel van de zoekopdracht?",
-    required: true,
-    type: "textarea"
-  },
-  {
-    label: "Relevante wetsartikelen",
-    help: "Indien bekend, vul hier relevante wetsartikelen in.",
-    required: false,
-    type: "text"
-  },
-  {
-    label: "Datum bereik",
-    help: "'Geen limiet' OF Van: yyyy-mm-dd, tot: yyyy-mm-dd.",
-    required: false,
-    type: "text"
-  },
-  {
-    label: "Instantie-preferentie",
-    help: "Maak een keuze: HR / Gerechtshof / Rechtbank / alle instanties.",
-    required: false,
-    type: "text"
-  },
-  {
-    label: "Rol van cliënt",
-    help: "Eiser / gedaagde / derde.",
-    required: false,
-    type: "text"
-  },
-  {
-    label: "Doel output",
-    help: "Voor welk juridisch document wordt de output gebruikt? Bijvoorbeeld: pleitnota, conclusie, adviesnota, quickcheck.",
-    required: false,
-    type: "text"
-  },
-  {
-    label: "Aantal weergeven resultaten(Top 3/Top 5/Top 10)",
-    help: "Standaard 5.",
-    required: false,
-    type: "text"
-  },
-  {
-    label: "Inclusief trends en ontwikkeling?",
-    help: "Moeten trends en recente ontwikkelingen worden meegenomen? Kies: ja of nee.",
-    required: false,
-    type: "text"
-  },
-  {
-    label: "Waiver for missing info?",
-    help: "Hier alleen iets anders dan nee invullen wanneer je niet specifiek wil zoeken op basis van alle ingevoerde informatie. Indien ja: 'ga door' vermelden.",
-    required: false,
-    type: "text"
-  }
-];
-
-let answers = Array(questions.length).fill("");
-let current = 0;
-
-function showQuestion(idx) {
-  const form = document.getElementById('qform');
-  form.innerHTML = '';
-  for (let i = 0; i <= idx; i++) {
-    const q = questions[i];
-    const section = document.createElement('div');
-    section.className = "question-section";
-    section.style.position = "relative";
-
-    const label = document.createElement('label');
-    label.innerHTML = `${i+1}. ${q.label}${q.required ? '<span class="required">*</span>' : ''}`;
-    section.appendChild(label);
-
-    if (q.type === "textarea") {
-      var input = document.createElement('textarea');
-      input.rows = 5;
-    } else {
-      var input = document.createElement('input');
-      input.type = "text";
+  const questions = [
+    {
+      label: "Rechtsgebied",
+      help: "Bijvoorbeeld: civielrecht — aansprakelijkheid, arbeidsrecht, bestuursrecht, strafrecht.",
+      required: true,
+      type: "text"
+    },
+    {
+      label: "Rechtsvraag",
+      help: "Wat is de concrete juridische vraag of het doel van de zoekopdracht?",
+      required: true,
+      type: "textarea"
+    },
+    {
+      label: "Relevante wetsartikelen",
+      help: "Indien bekend, vul hier relevante wetsartikelen in.",
+      required: false,
+      type: "text"
+    },
+    {
+      label: "Datum bereik",
+      help: "'Geen limiet' OF Van: yyyy-mm-dd, tot: yyyy-mm-dd.",
+      required: false,
+      type: "text"
+    },
+    {
+      label: "Instantie-preferentie",
+      help: "Maak een keuze: HR / Gerechtshof / Rechtbank / alle instanties.",
+      required: false,
+      type: "text"
+    },
+    {
+      label: "Rol van cliënt",
+      help: "Eiser / gedaagde / derde.",
+      required: false,
+      type: "text"
+    },
+    {
+      label: "Doel output",
+      help: "Voor welk juridisch document wordt de output gebruikt? Bijvoorbeeld: pleitnota, conclusie, adviesnota, quickcheck.",
+      required: false,
+      type: "text"
+    },
+    {
+      label: "Aantal weergeven resultaten(Top 3/Top 5/Top 10)",
+      help: "Standaard 5.",
+      required: false,
+      type: "text"
+    },
+    {
+      label: "Inclusief trends en ontwikkeling?",
+      help: "Moeten trends en recente ontwikkelingen worden meegenomen? Kies: ja of nee.",
+      required: false,
+      type: "text"
+    },
+    {
+      label: "Waiver for missing info?",
+      help: "Hier alleen iets anders dan nee invullen wanneer je niet specifiek wil zoeken op basis van alle ingevoerde informatie. Indien ja: 'ga door' vermelden.",
+      required: false,
+      type: "text"
     }
-    input.value = answers[i];
-    input.placeholder = (q.required ? "Verplicht veld" : "");
-    input.oninput = function(){ answers[i] = input.value; updateOverview(); }
-    input.id = "input_" + i;
-    section.appendChild(input);
+  ];
 
-    // Permanente helptekst direct onder het invoerveld
-    const helptext = document.createElement('div');
-    helptext.className = "helptext";
-    helptext.textContent = q.help;
-    section.appendChild(helptext);
+  let answers = Array(questions.length).fill("");
+  let current = 0;
 
-    if (current === i) {
-      const btnRow = document.createElement('div');
-      btnRow.className = "btn-row";
+  function showQuestion(idx) {
+    const form = document.getElementById('qform');
+    form.innerHTML = '';
+    for (let i = 0; i <= idx; i++) {
+      const q = questions[i];
+      const section = document.createElement('div');
+      section.className = "question-section";
+      section.style.position = "relative";
 
-      if (i > 0) {
-        const prevBtn = document.createElement('button');
-        prevBtn.type = 'button';
-        prevBtn.textContent = "Vorige";
-        prevBtn.onclick = function(){ current--; showQuestion(current); };
-        btnRow.appendChild(prevBtn);
+      const label = document.createElement('label');
+      label.innerHTML = `${i+1}. ${q.label}${q.required ? '<span class="required">*</span>' : ''}`;
+      section.appendChild(label);
+
+      let input;
+      if (q.type === "textarea") {
+        input = document.createElement('textarea');
+        input.rows = 5;
+      } else {
+        input = document.createElement('input');
+        input.type = "text";
       }
-      const nextBtn = document.createElement('button');
-      nextBtn.type = 'button';
-      nextBtn.textContent = (i === questions.length-1 ? "Afronden" : "Volgende");
-      nextBtn.onclick = function(){
-        if (q.required && !input.value.trim()) {
-          input.style.borderColor = "#e84b12";
-          input.focus();
-          alert('Dit veld is verplicht.');
-          return;
+      input.value = answers[i];
+      input.placeholder = (q.required ? "Verplicht veld" : "");
+      input.oninput = function(){ answers[i] = input.value; updateOverview(); }
+      input.id = "input_" + i;
+      section.appendChild(input);
+
+      const helptext = document.createElement('div');
+      helptext.className = "helptext";
+      helptext.textContent = q.help;
+      section.appendChild(helptext);
+
+      if (current === i) {
+        const btnRow = document.createElement('div');
+        btnRow.className = "btn-row";
+
+        if (i > 0) {
+          const prevBtn = document.createElement('button');
+          prevBtn.type = 'button';
+          prevBtn.textContent = "Vorige";
+          prevBtn.onclick = function(){ current--; showQuestion(current); };
+          btnRow.appendChild(prevBtn);
         }
-        answers[i] = input.value;
-        if (current < questions.length-1) {
-          current++;
+        const nextBtn = document.createElement('button');
+        nextBtn.type = 'button';
+        nextBtn.textContent = (i === questions.length-1 ? "Afronden" : "Volgende");
+        nextBtn.onclick = function(){
+          if (q.required && !input.value.trim()) {
+            input.style.borderColor = "#e84b12";
+            input.focus();
+            alert('Dit veld is verplicht.');
+            return;
+          }
+          answers[i] = input.value;
+          if (current < questions.length-1) {
+            current++;
+            showQuestion(current);
+          } else {
+            updateOverview();
+            document.getElementById('overview').style.display = "block";
+            window.scrollTo({left:0, top:document.body.scrollHeight, behavior:"smooth"});
+          }
+        }
+        btnRow.appendChild(nextBtn);
+        section.appendChild(btnRow);
+      } else {
+        const editSpan = document.createElement('span');
+        editSpan.className = "edit-link";
+        editSpan.textContent = "Wijzig";
+        editSpan.onclick = function(){
+          current = i;
           showQuestion(current);
-        } else {
-          updateOverview();
-          document.getElementById('overview').style.display = "block";
-          window.scrollTo({left:0, top:document.body.scrollHeight, behavior:"smooth"});
+          window.scrollTo({left:0, top:0, behavior:"smooth"});
         }
+        section.appendChild(editSpan);
       }
-      btnRow.appendChild(nextBtn);
-      section.appendChild(btnRow);
-    } else {
-      const editSpan = document.createElement('span');
-      editSpan.className = "edit-link";
-      editSpan.textContent = "Wijzig";
-      editSpan.onclick = function(){
-        current = i;
-        showQuestion(current);
-      }
-      section.appendChild(editSpan);
+      form.appendChild(section);
     }
-
-    form.appendChild(section);
+    updateOverview();
   }
-  updateOverview();
-}
 
-function updateOverview(){
-  const ul = document.querySelector('ul.overview');
-  ul.innerHTML = "";
-  answers.forEach((ans,i) => {
-    if (i <= current || document.getElementById('overview').style.display === "block") {
-      const li = document.createElement('li');
-      li.innerHTML = `<strong>${i+1}. ${questions[i].label}:</strong> ${ans ? ans.replace(/\n/g,'<br>') : "<em>Geen antwoord</em>"} `;
-      const editSpan = document.createElement('span');
-      editSpan.className = "edit-link";
-      editSpan.textContent = "Wijzig";
-      editSpan.onclick = function(){
-        current = i;
-        document.getElementById('overview').style.display = "none";
-        showQuestion(current);
-        window.scrollTo({left:0, top:0, behavior:"smooth"});
+  function updateOverview(){
+    const ul = document.querySelector('ul.overview');
+    ul.innerHTML = "";
+    answers.forEach((ans,i) => {
+      if (i <= current || document.getElementById('overview').style.display === "block") {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${i+1}. ${questions[i].label}:</strong> ${ans ? ans.replace(/\n/g,'<br>') : "<em>Geen antwoord</em>"} `;
+        const editSpan = document.createElement('span');
+        editSpan.className = "edit-link";
+        editSpan.textContent = "Wijzig";
+        editSpan.onclick = function(){
+          current = i;
+          document.getElementById('overview').style.display = "none";
+          showQuestion(current);
+          window.scrollTo({left:0, top:0, behavior:"smooth"});
+        }
+        li.appendChild(editSpan);
+        ul.appendChild(li);
       }
-      li.appendChild(editSpan);
-      ul.appendChild(li);
-    }
-  });
-}
-showQuestion(0);
+    });
+  }
+  showQuestion(0);
 
-// Kopieer alles knop
-document.getElementById('copyBtn').onclick = function(){
-  let txt = answers.map((ans,i)=> `${i+1}. ${questions[i].label}: ${ans}` ).join('\n');
-  navigator.clipboard.writeText(txt);
-  alert("Antwoorden gekopieerd");
-};
+  const modal = document.getElementById('modal');
+  const goToSiteBtn = document.getElementById('goToSiteBtn');
+  const closeModalBtn = document.getElementById('closeModalBtn');
 
-// CSV export knop
-document.getElementById('csvBtn').onclick = function(){
-  let csv = "Nummer,Vraag,Antwoord\n" + answers.map((ans,i)=>
-    `"${i+1}","${questions[i].label.replace(/"/g,'""')}","${ans.replace(/"/g,'""')}"`).join("\n");
-  let blob = new Blob([csv], {type:'text/csv'});
-  let url = URL.createObjectURL(blob);
-  let a = document.createElement('a');
-  a.href = url;
-  a.download = 'juridisch_intake.csv';
-  document.body.appendChild(a);
-  a.click(); setTimeout(()=>{document.body.removeChild(a);},800);
-};
+  // Kopieer alles knop met modaal
+  document.getElementById('copyBtn').onclick = function(){
+    let txt = answers.map((ans,i)=> `${i+1}. ${questions[i].label}: ${ans}` ).join('\n');
+    navigator.clipboard.writeText(txt);
+    modal.style.display = "flex";
+  };
+
+  // Navigeer naar website knop in modal
+  goToSiteBtn.onclick = function(){
+    window.open("https://gemini.google.com/gem/77a3553d5182", "_blank");
+  };
+
+  // Sluit modal knop
+  closeModalBtn.onclick = function(){
+    modal.style.display = "none";
+  };
+
+  // CSV export knop (onveranderd)
+  document.getElementById('csvBtn').onclick = function(){
+    let csv = "Nummer,Vraag,Antwoord\n" + answers.map((ans,i)=>
+      `"${i+1}","${questions[i].label.replace(/"/g,'""')}","${ans.replace(/"/g,'""')}"`).join("\n");
+    let blob = new Blob([csv], {type:'text/csv'});
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = 'juridisch_intake.csv';
+    document.body.appendChild(a);
+    a.click(); setTimeout(()=>{document.body.removeChild(a);},800);
+  };
 </script>
 </body>
 </html>
