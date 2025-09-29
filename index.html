@@ -316,7 +316,7 @@ showQuestion(0);
 document.getElementById('copyBtn').onclick = function(){
   let txt = answers.map((ans,i)=> `${i+1}. ${questions[i].label}: ${ans}` ).join('\n');
   navigator.clipboard.writeText(txt);
-  alert("Antwoorden gekopieerd!");
+  alert("Antwoorden gekopieerd!<br>Ga nu naar deze website en plak in de chat: <br> https://gemini.google.com/gem/77a3553d5182");
 };
 
 // CSV export knop
